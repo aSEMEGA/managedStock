@@ -13,7 +13,7 @@ class Vente (
     var id : Int,
     var datecreationVente : LocalDateTime,
     var quantite : Int,
-    var total : Double,
+    var total : Int,
     @ManyToOne
     var product: Product,
     @Enumerated(EnumType.STRING)

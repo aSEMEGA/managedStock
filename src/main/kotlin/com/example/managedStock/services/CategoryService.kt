@@ -16,9 +16,9 @@ class CategoryService(
 ) {
 
     fun createCategory(categoryDto: CategoryDto): CategoryDto {
-        val  category = categoryRepository.findById(categoryDto.id);
-        if (category != null) {
-            throw BadRequestException("Category exists déjà")
+        val  category = categoryRepository.findById(categoryDto.id).isPresent;
+        if (category) {
+            throw IllegalArgumentException("Category exists déjà avec l'id ${categoryDto.id}")
         }
         val categoryEntity = categoryMapper.toEntity(categoryDto)
         val savedCategory = categoryRepository.save(categoryEntity)

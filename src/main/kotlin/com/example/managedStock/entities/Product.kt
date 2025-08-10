@@ -12,7 +12,7 @@ class Product (
     var nom: String,
     var quantity: Int,
     var price: Int,
-    var imagePath: String,
+    var imagePath: String?,
     @ManyToOne
     var category: Category,
     var seuilStock : Int,

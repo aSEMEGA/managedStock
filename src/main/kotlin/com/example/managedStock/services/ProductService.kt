@@ -44,14 +44,14 @@ class ProductService (
         return filePath.toString()
     }
 
-    fun createProduct(productDto: ProductDto, image : MultipartFile): ProductDto {
+    fun createProduct(productDto: ProductDto, image : MultipartFile?): ProductDto {
         val category = categoryRepository.findById(productDto.categoryId).orElseThrow {
             NotFoundException("Category non Trouver") }
         if (productRepository.existsById(productDto.id)) {
             throw ConflictException("Produit avec ID ${productDto.id} existe déjà")
         }
 
-        val imagePath = saveImage(image)
+        val imagePath = image?.let { saveImage(it) }
         val productMap = productMapper.toEntity(productDto, category)
         productMap.imagePath = imagePath
         val savedProduct = productRepository.save(productMap)
@@ -64,7 +64,7 @@ class ProductService (
         return productMapper.toDto(savedProduct)
     }
 
-    fun updateProduct(productDto: ProductDto, image: MultipartFile): ProductDto {
+    fun updateProduct(productDto: ProductDto, image: MultipartFile?): ProductDto {
         val existingProduct = productRepository.findById(productDto.id).orElseThrow {
             NotFoundException("Produit non Trouver") }
 
@@ -79,9 +79,15 @@ class ProductService (
         existingProduct.isActive = productDto.isActive
         existingProduct.dateCreation = productDto.dateCreation
 
-        if (!image.isEmpty){
-            val imagePath = saveImage(image)
-            existingProduct.imagePath = imagePath
+        image?.let { newImage ->
+            if (!newImage.isEmpty) {
+                existingProduct.imagePath?.let { oldImagePath ->
+                    Files.deleteIfExists(Paths.get(oldImagePath))
+                }
+
+                val imagePath = saveImage(newImage)
+                existingProduct.imagePath = imagePath
+            }
         }
 
         return productMapper.toDto(productRepository.save(productMapper.toEntity(productDto, existingProduct.category)))

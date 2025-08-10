@@ -13,7 +13,7 @@ data class VenteDto (
     var id : Int,
     var datecreationVente : LocalDateTime,
     var quantite : Int,
-    var total : Double,
+    var total : Int,
     var productId: Int,
     var TypeVente: TypeVente,
     var TypeMouvement: TypeMouvement
