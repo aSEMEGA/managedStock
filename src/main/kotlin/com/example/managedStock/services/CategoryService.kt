@@ -7,7 +7,6 @@ import com.example.managedStock.exception.NotFoundException
 import com.example.managedStock.mappers.CategoryMapper
 import com.example.managedStock.repository.CategoryRepository
 import org.springframework.stereotype.Service
-import kotlin.reflect.jvm.internal.impl.descriptors.Visibilities.Private
 
 @Service
 class CategoryService(
@@ -16,14 +15,9 @@ class CategoryService(
 ) {
 
     fun createCategory(categoryDto: CategoryDto): CategoryDto {
-        val  category = categoryRepository.findById(categoryDto.id).isPresent;
-        if (category) {
-            throw IllegalArgumentException("Category exists déjà avec l'id ${categoryDto.id}")
-        }
         val categoryEntity = categoryMapper.toEntity(categoryDto)
         val savedCategory = categoryRepository.save(categoryEntity)
         return categoryMapper.toDto(savedCategory)
-
     }
 
     fun updateCategory(categoryDto: CategoryDto): CategoryDto {
@@ -32,11 +26,10 @@ class CategoryService(
         }
 
         existingCategory.libelle = categoryDto.libelle
+        existingCategory.isActive = categoryDto.isActive
 
-        val categoryEntity = categoryMapper.toEntity(categoryDto)
-        val savedCategory = categoryRepository.save(categoryEntity)
+        val savedCategory = categoryRepository.save(existingCategory)
         return categoryMapper.toDto(savedCategory)
-
     }
 
     fun getAllCategories(): List<CategoryDto> {

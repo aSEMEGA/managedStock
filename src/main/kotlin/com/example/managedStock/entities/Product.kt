@@ -8,17 +8,15 @@ import java.time.LocalDateTime
 class Product (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Int,
-    var nom: String,
-    var quantity: Int,
-    var price: Int,
-    var imagePath: String?,
+    var id: Int = 0,
+    var nom: String = "",
+    var quantity: Int = 0,
+    var price: Int = 0,
+    var imagePath: String? = null,
     @ManyToOne
     var category: Category,
-    var seuilStock : Int,
+    var seuilStock: Int = 0,
     @Enumerated(EnumType.STRING)
     var isActive: State = State.ACTIVATED,
-    var dateCreation: LocalDateTime = LocalDateTime.now(),
-
-
+    var dateCreation: LocalDateTime = LocalDateTime.now()
 )

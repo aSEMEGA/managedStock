@@ -9,10 +9,9 @@ import jakarta.persistence.Id
 
 @Entity
 class Category (
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long,
-    var libelle: String,
+    var id: Long = 0,
+    var libelle: String = "",
     var isActive: State = State.ACTIVATED
 )

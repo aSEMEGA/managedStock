@@ -11,7 +11,6 @@ import com.example.managedStock.mappers.ProductMapper
 import com.example.managedStock.repository.CategoryRepository
 import com.example.managedStock.repository.MouvStockRepository
 import com.example.managedStock.repository.ProductRepository
-import lombok.RequiredArgsConstructor
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.nio.file.Files
@@ -19,7 +18,6 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.reflect.jvm.internal.impl.descriptors.Visibilities.Private
 
 @Service
 class ProductService (
@@ -90,7 +88,7 @@ class ProductService (
             }
         }
 
-        return productMapper.toDto(productRepository.save(productMapper.toEntity(productDto, existingProduct.category)))
+        return productMapper.toDto(productRepository.save(existingProduct))
     }
 
     fun deleteProduct(id: Int) {
@@ -120,10 +118,8 @@ class ProductService (
     }
 
     fun searchProducts(query: String): List<ProductDto> {
-        return productRepository.findAll().asSequence()
-            .filter { it.nom.contains(query) }
+        return productRepository.findByNomContainingIgnoreCase(query)
             .map { productMapper.toDto(it) }
-            .toList()
     }
 
 

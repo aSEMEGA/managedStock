@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/api/mouvements")
+@RequestMapping("/api/v1/mouvements")
 class MouvStockController(private val mouvStockService: MouvStockService) {
 
     @GetMapping

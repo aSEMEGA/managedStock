@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/v1/products")
 class ProductController
     (private val productService: ProductService) {
 

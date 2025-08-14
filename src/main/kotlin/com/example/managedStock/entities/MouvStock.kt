@@ -8,16 +8,14 @@ import java.time.LocalDateTime
 class MouvStock (
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Int? = null,
+    var id: Int = 0,
 
     @ManyToOne
-    val product: Product,
+    var product: Product,
 
     @Enumerated(EnumType.STRING)
-    val typeMouvement: TypeMouvement,
+    var typeMouvement: TypeMouvement,
 
-    val quantity: Int,
-    val date: LocalDateTime = LocalDateTime.now(),
-
-
+    var quantity: Int,
+    var date: LocalDateTime = LocalDateTime.now()
 )

@@ -12,25 +12,22 @@ import jakarta.validation.constraints.Positive
 import java.time.LocalDateTime
 
 data class ProductDto (
-
-    var id: Int,
+    var id: Int = 0,
     @field:NotBlank(message = "Le nom du produit est obligatoire")
-    var nom: String,
+    var nom: String = "",
     @field:NotNull(message = "La quantité du produit est obligatoire")
     @field:Positive(message = "La quantité du produit doit etre superieur a 0")
-    var quantity: Int,
+    var quantity: Int = 0,
     @field:NotNull(message = "Le prix du produit est obligatoire")
     @field:Positive
     @field:Min(value = 1, message = "Le prix du produit doit etre superieur a 0")
-    var price: Int,
-    var imagePath: String?,
+    var price: Int = 0,
+    var imagePath: String? = null,
     @field:NotNull(message = "La catégorie du produit est obligatoire")
-    var categoryId: Long,
+    var categoryId: Long = 0,
     @field:NotNull(message = "Le seuil de stock est obligatoire")
     @field:Positive(message = "Le seuil de stock doit etre superieur a 0")
-    var seuilStock : Int,
+    var seuilStock: Int = 0,
     var isActive: State = State.ACTIVATED,
-    var dateCreation: LocalDateTime = LocalDateTime.now(),
-
-
-    )
+    var dateCreation: LocalDateTime = LocalDateTime.now()
+)

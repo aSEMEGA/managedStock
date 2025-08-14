@@ -9,12 +9,19 @@ import jakarta.persistence.ManyToOne
 import java.time.LocalDateTime
 
 data class VenteDto (
-
-    var id : Int,
-    var datecreationVente : LocalDateTime,
-    var quantite : Int,
-    var total : Int,
-    var productId: Int,
-    var TypeVente: TypeVente,
-    var TypeMouvement: TypeMouvement
+    var id: Int = 0,
+    var datecreationVente: LocalDateTime = LocalDateTime.now(),
+    var quantite: Int = 0,
+    var prixUnitaire: Int = 0,
+    var total: Int = 0,
+    var reduction: Int = 0,
+    var montantPaye: Int = 0,
+    var montantCredit: Int = 0,
+    var dateEcheance: LocalDateTime? = null,
+    var isCredit: Boolean = false,
+    var isPaye: Boolean = true,
+    var productId: Int = 0,
+    var clientId: Int? = null,
+    var vendeurId: Int = 0,
+    var TypeVente: TypeVente
 )
