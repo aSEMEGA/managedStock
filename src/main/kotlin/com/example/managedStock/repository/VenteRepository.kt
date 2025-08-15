@@ -1,5 +1,6 @@
 package com.example.managedStock.repository
 
+import com.example.managedStock.dto.VenteDto
 import com.example.managedStock.entities.Vente
 import com.example.managedStock.entities.Product
 import com.example.managedStock.entities.Client
@@ -24,6 +25,10 @@ interface VenteRepository : JpaRepository<Vente, Int>{
     fun findByClient(client: Client): List<Vente>
     
     fun findByVendeur(vendeur: Users): List<Vente>
+
+
+
+    fun findByClientIdAndIsCreditTrueAndIsPayeFalse(clientId: Int): List<Vente>
     
     @Query("""
         SELECT p.nom as productName, SUM(v.quantite) as totalQuantity, SUM(v.total) as totalRevenue

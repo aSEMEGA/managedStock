@@ -2,6 +2,7 @@ package com.example.managedStock.services
 
 import com.example.managedStock.dto.ProductDto
 import com.example.managedStock.dto.VenteDto
+import com.example.managedStock.entities.Client
 import com.example.managedStock.entities.Product
 import com.example.managedStock.entities.Vente
 import com.example.managedStock.entities.MouvStock
@@ -12,6 +13,8 @@ import com.example.managedStock.exception.NotFoundException
 import com.example.managedStock.exception.BadRequestException
 import com.example.managedStock.enums.TypeVente
 import com.example.managedStock.enums.TypeMouvement
+import com.example.managedStock.mappers.VenteMapper
+import com.example.managedStock.repository.ClientRepository
 import java.time.LocalDateTime
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,31 +23,43 @@ import org.springframework.transaction.annotation.Transactional
 class VenteService(
     private val venteRepository: VenteRepository,
     private val productRepository: ProductRepository,
-    private val mouvStockRepository: MouvStockRepository
+    private val mouvStockRepository: MouvStockRepository,
+    private val venteMapper: VenteMapper,
+    private val clientRepository: ClientRepository
 ) {
 
     @Transactional
     fun createVente(venteDto: VenteDto): VenteDto {
-        // Find the product in database
-        val existingProduct = productRepository.findById(venteDto.productId).orElseThrow{
-            NotFoundException("Product non Trouver")
-        }
+        val existingProduct = productRepository.findById(venteDto.productId)
+            .orElseThrow { NotFoundException("Produit non trouvé") }
 
-        // Check if there's sufficient stock
-        if(existingProduct.quantity < venteDto.quantite){
-            throw BadRequestException("Stock Insuffisant")
-        }
+        if (venteDto.quantite <= 0) throw BadRequestException("La quantité doit être supérieure à 0")
+        if (existingProduct.quantity < venteDto.quantite) throw BadRequestException("Stock insuffisant")
 
-        // Calculate prices
         val prixUnitaire = if (venteDto.prixUnitaire > 0) venteDto.prixUnitaire else existingProduct.price
         val totalSansReduction = prixUnitaire * venteDto.quantite
+        if (venteDto.reduction < 0 || venteDto.reduction > totalSansReduction) throw BadRequestException("Réduction invalide")
         val totalAvecReduction = totalSansReduction - venteDto.reduction
+        if ((venteDto.montantPaye + venteDto.montantCredit) != totalAvecReduction)
+            throw BadRequestException("Montant payé + crédit doit correspondre au total")
 
-        // Update product quantity
+
+        var client: Client? = null
+        if (!venteDto.clientNom.isNullOrBlank() && !venteDto.clientTelephone.isNullOrBlank()) {
+            client = clientRepository.findByNomAndTelephone(venteDto.clientNom, venteDto.clientTelephone)
+                ?: clientRepository.save(
+                    Client(
+                        nom = venteDto.clientNom,
+                        telephone = venteDto.clientTelephone,
+                        email = venteDto.clientEmail ?: "",
+                        adresse = venteDto.clientAdresse ?: ""
+                    )
+                )
+        }
+
         existingProduct.quantity -= venteDto.quantite
         productRepository.save(existingProduct)
 
-        // Create vente entity (simplified for now)
         val vente = Vente(
             id = 0,
             datecreationVente = LocalDateTime.now(),
@@ -58,40 +73,26 @@ class VenteService(
             isCredit = venteDto.isCredit,
             isPaye = venteDto.isPaye,
             product = existingProduct,
-            client = null, // Will be added later
-            vendeur = null, // Will be added later
-            typeVente = venteDto.TypeVente,
+            client = client,
+            vendeur = null,
+            typeVente = venteDto.typeVente ?: TypeVente.DIRECT,
             typeMouvement = TypeMouvement.SORTIE
         )
 
         val savedVente = venteRepository.save(vente)
 
-        // Create stock movement
-        val mouvStock = MouvStock(
-            product = existingProduct,
-            quantity = venteDto.quantite,
-            typeMouvement = TypeMouvement.SORTIE
+        mouvStockRepository.save(
+            MouvStock(
+                product = existingProduct,
+                quantity = venteDto.quantite,
+                typeMouvement = TypeMouvement.SORTIE
+            )
         )
-        mouvStockRepository.save(mouvStock)
 
-        return VenteDto(
-            id = savedVente.id,
-            datecreationVente = savedVente.datecreationVente,
-            quantite = savedVente.quantite,
-            prixUnitaire = savedVente.prixUnitaire,
-            total = savedVente.total,
-            reduction = savedVente.reduction,
-            montantPaye = savedVente.montantPaye,
-            montantCredit = savedVente.montantCredit,
-            dateEcheance = savedVente.dateEcheance,
-            isCredit = savedVente.isCredit,
-            isPaye = savedVente.isPaye,
-            productId = savedVente.product?.id ?: 0,
-            clientId = savedVente.client?.id,
-            vendeurId = savedVente.vendeur?.id ?: 0,
-            TypeVente = savedVente.typeVente ?: TypeVente.DIRECT
-        )
+        return venteMapper.toDto(savedVente)
     }
+
+
 
     fun getAll(): List<VenteDto> {
         return venteRepository.findAll().map { vente ->
@@ -108,9 +109,10 @@ class VenteService(
                 isCredit = vente.isCredit,
                 isPaye = vente.isPaye,
                 productId = vente.product?.id ?: 0,
-                clientId = vente.client?.id,
-                vendeurId = vente.vendeur?.id ?: 0,
-                TypeVente = vente.typeVente ?: TypeVente.DIRECT
+                clientNom = vente.client?.nom ?: "",
+                clientTelephone = vente.client?.telephone ?: "",
+                typeVente = vente.typeVente ?: TypeVente.DIRECT,
+                typeMouvement = vente.typeMouvement ?: TypeMouvement.SORTIE
             )
         }
     }
@@ -132,9 +134,10 @@ class VenteService(
             isCredit = vente.isCredit,
             isPaye = vente.isPaye,
             productId = vente.product?.id ?: 0,
-            clientId = vente.client?.id,
-            vendeurId = vente.vendeur?.id ?: 0,
-            TypeVente = vente.typeVente ?: TypeVente.DIRECT
+            clientNom = vente.client?.nom ?: "",
+            clientTelephone = vente.client?.telephone ?: "",
+            typeVente = vente.typeVente ?: TypeVente.DIRECT,
+            typeMouvement = vente.typeMouvement ?: TypeMouvement.SORTIE
         )
     }
 
@@ -156,9 +159,10 @@ class VenteService(
                 isCredit = vente.isCredit,
                 isPaye = vente.isPaye,
                 productId = vente.product?.id ?: 0,
-                clientId = vente.client?.id,
-                vendeurId = vente.vendeur?.id ?: 0,
-                TypeVente = vente.typeVente ?: TypeVente.DIRECT
+                clientNom = vente.client?.nom ?: "",
+                clientTelephone = vente.client?.telephone ?: "",
+                typeVente = vente.typeVente ?: TypeVente.DIRECT,
+                typeMouvement = vente.typeMouvement ?: TypeMouvement.SORTIE
             )
         }
     }
@@ -178,10 +182,12 @@ class VenteService(
                 isCredit = vente.isCredit,
                 isPaye = vente.isPaye,
                 productId = vente.product?.id ?: 0,
-                clientId = vente.client?.id,
-                vendeurId = vente.vendeur?.id ?: 0,
-                TypeVente = vente.typeVente ?: TypeVente.DIRECT
+                clientNom = vente.client?.nom ?: "",
+                clientTelephone = vente.client?.telephone ?: "",
+                typeVente = vente.typeVente ?: TypeVente.DIRECT,
+                typeMouvement = vente.typeMouvement ?: TypeMouvement.SORTIE
             )
+
         }
     }
 
@@ -210,17 +216,72 @@ class VenteService(
         }
     }
 
-    // TODO: Implement credit functionality when repositories are ready
     fun getVentesEnCredit(): List<VenteDto> {
-        return emptyList() // TODO: Implement when ClientRepository is ready
+        return venteRepository.findByIsCreditTrueAndIsPayeFalse().map { vente ->
+            VenteDto(
+                id = vente.id,
+                datecreationVente = vente.datecreationVente,
+                quantite = vente.quantite,
+                prixUnitaire = vente.prixUnitaire,
+                total = vente.total,
+                reduction = vente.reduction,
+                montantPaye = vente.montantPaye,
+                montantCredit = vente.montantCredit,
+                dateEcheance = vente.dateEcheance,
+                isCredit = vente.isCredit,
+                isPaye = vente.isPaye,
+                productId = vente.product?.id ?: 0,
+                clientNom = vente.client?.nom ?: "",
+                clientTelephone = vente.client?.telephone ?: "",
+                typeVente = vente.typeVente ?: TypeVente.DIRECT,
+                typeMouvement = vente.typeMouvement ?: TypeMouvement.SORTIE
+            )
+        }
     }
 
     fun getVentesEnCreditParClient(clientId: Int): List<VenteDto> {
-        return emptyList() // TODO: Implement when ClientRepository is ready
+        return venteRepository.findByClientIdAndIsCreditTrueAndIsPayeFalse(clientId).map { vente ->
+            VenteDto(
+                id = vente.id,
+                datecreationVente = vente.datecreationVente,
+                quantite = vente.quantite,
+                prixUnitaire = vente.prixUnitaire,
+                total = vente.total,
+                reduction = vente.reduction,
+                montantPaye = vente.montantPaye,
+                montantCredit = vente.montantCredit,
+                dateEcheance = vente.dateEcheance,
+                isCredit = vente.isCredit,
+                isPaye = vente.isPaye,
+                productId = vente.product?.id ?: 0,
+                clientNom = vente.client?.nom ?: "",
+                clientTelephone = vente.client?.telephone ?: "",
+                typeVente = vente.typeVente ?: TypeVente.DIRECT,
+                typeMouvement = vente.typeMouvement ?: TypeMouvement.SORTIE
+            )
+        }
     }
 
+
     fun payerCredit(venteId: Int, montantPaye: Int): VenteDto {
-        throw NotImplementedError("Credit payment not yet implemented")
+        var vente = venteRepository.findById(venteId).orElseThrow{
+            NotFoundException("Vente non Trouver")
+        }
+       if(!vente.isCredit){
+           throw BadRequestException("La vente n'est pas en crédit")
+       }
+        if(vente.montantCredit < montantPaye){
+            throw BadRequestException("Le montant payé est supérieur au montant du crédit")
+        }
+        if (vente.isPaye) {
+            throw BadRequestException("La vente est déjà payée")
+        }
+
+        vente.montantPaye += montantPaye
+        vente.montantCredit = (vente.total - vente.montantPaye).coerceAtLeast(0)
+        vente.isPaye = true
+        venteRepository.save(vente)
+        return venteMapper.toDto(vente)
     }
 
     fun envoyerRappelsCredit() {
@@ -228,8 +289,7 @@ class VenteService(
     }
 
     fun getTotalCreditEnAttente(): Int {
-        return 0 // TODO: Implement when repositories are ready
+        return venteRepository.findByIsCreditTrueAndIsPayeFalse().sumOf { it.montantCredit }
     }
 }
-}
-}
+

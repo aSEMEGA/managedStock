@@ -2,6 +2,7 @@ package com.example.managedStock.dto
 
 import com.example.managedStock.enums.Role
 import jakarta.validation.constraints.NotBlank
+import java.time.LocalDateTime
 
 data class UsersDto (
     var id: Int = 0,

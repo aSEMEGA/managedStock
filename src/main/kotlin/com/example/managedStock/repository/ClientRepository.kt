@@ -1,5 +1,6 @@
 package com.example.managedStock.repository
 
+import com.example.managedStock.dto.VenteDto
 import com.example.managedStock.entities.Client
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
@@ -11,4 +12,6 @@ interface ClientRepository : JpaRepository<Client, Int> {
     
     @Query("SELECT c FROM Client c WHERE c.isActive = true")
     fun findActiveClients(): List<Client>
+
+    fun findByNomAndTelephone(nom: String, telephone: String): Client?
 }

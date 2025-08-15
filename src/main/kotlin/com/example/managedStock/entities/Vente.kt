@@ -31,8 +31,8 @@ class Vente (
     var vendeur: Users? = null,
     
     @Enumerated(EnumType.STRING)
-    var typeVente: TypeVente? = null,
+    var typeVente: TypeVente,
     
     @Enumerated(EnumType.STRING)
-    var typeMouvement: TypeMouvement? = null
+    var typeMouvement: TypeMouvement
 )
