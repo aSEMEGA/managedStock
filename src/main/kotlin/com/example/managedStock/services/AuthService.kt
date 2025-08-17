@@ -9,18 +9,26 @@ import com.example.managedStock.repository.UsersRepository
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import io.jsonwebtoken.security.Keys
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 import java.util.*
 
 @Service
 class AuthService(
     private val usersRepository: UsersRepository,
-    private val passwordEncoder: PasswordEncoder,
     private val emailService: EmailService
 ) {
 
-    private val secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256)
+
+    private val passwordEncoder: BCryptPasswordEncoder = BCryptPasswordEncoder()
+
+    private fun generateRandomPassword(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        return (1..8).map { chars.random() }.joinToString("")
+    }
+
 
     fun registerUser(usersDto: UsersDto): UsersDto {
         if (usersRepository.existsByUsername(usersDto.username)) {
@@ -62,22 +70,7 @@ class AuthService(
         )
     }
 
-    fun login(username: String, password: String): Map<String, Any> {
-        val user = usersRepository.findByUsername(username)
-            .orElseThrow { BadRequestException("Username ou mot de passe incorrect") }
 
-        if (!passwordEncoder.matches(password, user.password)) {
-            throw BadRequestException("Username ou mot de passe incorrect")
-        }
-
-        val token = generateToken(user)
-        return mapOf(
-            "token" to token,
-            "role" to user.role.name,
-            "username" to user.username,
-            "isFirstLogin" to user.isFirstLogin
-        )
-    }
 
     fun createVendeur(usersDto: UsersDto): UsersDto {
         // Seul un admin peut créer un vendeur
@@ -135,39 +128,7 @@ class AuthService(
         usersRepository.deleteById(id)
     }
 
-    private fun generateToken(user: Users): String {
-        val claims = mapOf(
-            "username" to user.username,
-            "role" to user.role.name,
-            "userId" to user.id.toString()
-        )
 
-        return Jwts.builder()
-            .setClaims(claims)
-            .setSubject(user.username)
-            .setIssuedAt(Date())
-            .setExpiration(Date(System.currentTimeMillis() + 86400000)) // 24 heures
-            .signWith(secretKey)
-            .compact()
-    }
-
-    fun validateToken(token: String): Map<String, Any> {
-        return try {
-            val claims = Jwts.parserBuilder()
-                .setSigningKey(secretKey)
-                .build()
-                .parseClaimsJws(token)
-                .body
-
-            mapOf(
-                "username" to claims["username"],
-                "role" to claims["role"],
-                "userId" to claims["userId"]
-            )
-        } catch (e: Exception) {
-            throw BadRequestException("Token invalide")
-        }
-    }
 
     fun changePassword(userId: Int, oldPassword: String, newPassword: String): UsersDto {
         val user = usersRepository.findById(userId).orElseThrow {
@@ -176,6 +137,10 @@ class AuthService(
 
         if (!passwordEncoder.matches(oldPassword, user.password)) {
             throw BadRequestException("Ancien mot de passe incorrect")
+        }
+
+        if (passwordEncoder.matches(oldPassword, user.password) == passwordEncoder.matches(newPassword, user.password)) {
+            throw BadRequestException("Le nouveau mot de passe doit être différent de l'ancien mot de passe")
         }
 
         user.password = passwordEncoder.encode(newPassword)
@@ -197,8 +162,5 @@ class AuthService(
         )
     }
 
-    private fun generateRandomPassword(): String {
-        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-        return (1..8).map { chars.random() }.joinToString("")
-    }
+
 }

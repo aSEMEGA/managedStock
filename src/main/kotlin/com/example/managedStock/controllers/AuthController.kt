@@ -1,25 +1,54 @@
 package com.example.managedStock.controllers
 
+import com.example.OtpGenerator.payload.TokenResponse
 import com.example.managedStock.dto.UsersDto
+import com.example.managedStock.payload.AuthRequest
+import com.example.managedStock.security.jwt.JwtUtil
 import com.example.managedStock.services.AuthService
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.authentication.AuthenticationManager
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/auth")
-class AuthController(private val authService: AuthService) {
+class AuthController(private val authService: AuthService,
+                     private val authenticationManager: AuthenticationManager,
+                     private val jwtTokenService: JwtUtil
+) {
 
     @PostMapping("/register")
     fun register(@Valid @RequestBody usersDto: UsersDto): ResponseEntity<UsersDto> =
         ResponseEntity.status(201).body(authService.registerUser(usersDto))
 
     @PostMapping("/login")
-    fun login(@RequestBody loginRequest: Map<String, String>): ResponseEntity<Map<String, String>> {
-        val username = loginRequest["username"] ?: throw IllegalArgumentException("Username requis")
-        val password = loginRequest["password"] ?: throw IllegalArgumentException("Password requis")
-        
-        return ResponseEntity.ok(authService.login(username, password))
+    fun login(@RequestBody authRequest: AuthRequest): ResponseEntity<TokenResponse> {
+        println("####1 $authRequest")
+
+        val authentication = authenticationManager.authenticate(
+            UsernamePasswordAuthenticationToken(authRequest.username, authRequest.password)
+        )
+        println("aut : $authentication")
+
+        SecurityContextHolder.getContext().authentication = authentication
+
+        val accessToken = jwtTokenService.generateToken(authentication)
+        val refreshToken = jwtTokenService.generateRefreshToken(authRequest.username)
+        println("#### $accessToken $refreshToken")
+
+        val tokenResponse = TokenResponse(
+            accessToken,
+            3_600_000,
+            604_800_000,
+            refreshToken,
+            "Bearer",
+            accessToken
+        )
+
+        return ResponseEntity(tokenResponse, HttpStatus.OK)
     }
 
     @PostMapping("/vendeur")
