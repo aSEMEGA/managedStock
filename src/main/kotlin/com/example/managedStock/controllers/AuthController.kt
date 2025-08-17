@@ -1,8 +1,8 @@
 package com.example.managedStock.controllers
 
-import com.example.OtpGenerator.payload.TokenResponse
 import com.example.managedStock.dto.UsersDto
 import com.example.managedStock.payload.AuthRequest
+import com.example.managedStock.payload.TokenResponse
 import com.example.managedStock.security.jwt.JwtUtil
 import com.example.managedStock.services.AuthService
 import jakarta.validation.Valid

@@ -1,4 +1,4 @@
-package com.example.OtpGenerator.payload
+package com.example.managedStock.payload;
 
 import com.fasterxml.jackson.annotation.JsonProperty
 
